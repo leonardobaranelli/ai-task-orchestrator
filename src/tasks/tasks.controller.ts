@@ -14,6 +14,7 @@ import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AuthenticatedRequest } from '../common/types';
 
 @ApiTags('tasks')
 @ApiBearerAuth()
@@ -24,19 +25,19 @@ export class TasksController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new task' })
-  create(@Req() req: any, @Body() createTaskDto: CreateTaskDto) {
+  create(@Req() req: AuthenticatedRequest, @Body() createTaskDto: CreateTaskDto) {
     return this.tasksService.create(req.user.userId, createTaskDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all user tasks (with Redis cache)' })
-  findAll(@Req() req: any) {
+  findAll(@Req() req: AuthenticatedRequest) {
     return this.tasksService.findAll(req.user.userId);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get task by ID' })
-  findOne(@Param('id') id: string, @Req() req: any) {
+  findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.tasksService.findOne(id, req.user.userId);
   }
 
@@ -44,7 +45,7 @@ export class TasksController {
   @ApiOperation({ summary: 'Update a task' })
   update(
     @Param('id') id: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body() updateTaskDto: UpdateTaskDto,
   ) {
     return this.tasksService.update(id, req.user.userId, updateTaskDto);
@@ -52,7 +53,7 @@ export class TasksController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a task' })
-  remove(@Param('id') id: string, @Req() req: any) {
+  remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.tasksService.remove(id, req.user.userId);
   }
 }

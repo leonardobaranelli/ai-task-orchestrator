@@ -1,12 +1,13 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { createClient, RedisClientType } from 'redis';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
-  private client: RedisClientType;
+  private readonly logger = new Logger(RedisService.name);
+  private readonly client: RedisClientType;
 
-  constructor(private configService: ConfigService) {
+  constructor(private readonly configService: ConfigService) {
     this.client = createClient({
       socket: {
         host: this.configService.get<string>('REDIS_HOST', 'localhost'),
@@ -14,15 +15,15 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       },
     });
 
-    this.client.on('error', (err) => console.error('Redis Client Error:', err));
+    this.client.on('error', (err: Error) => this.logger.error('Redis client error', err.stack));
   }
 
-  async onModuleInit() {
+  async onModuleInit(): Promise<void> {
     await this.client.connect();
-    console.log('✅ Redis connected successfully');
+    this.logger.log('Redis connected successfully');
   }
 
-  async onModuleDestroy() {
+  async onModuleDestroy(): Promise<void> {
     await this.client.quit();
   }
 

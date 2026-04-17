@@ -2,17 +2,19 @@
 
 Enterprise-grade AI-powered task management system built with NestJS.
 
-A production-ready backend featuring clean architecture, performant caching strategies, and an extensible AI integration layer.
+A production-ready backend featuring clean architecture, a full repository pattern, performant caching strategies, and an extensible AI integration layer.
 
 ## Highlights
 
 - JWT authentication with access and refresh tokens
+- **Repository Pattern** decoupling services from any specific ORM or database
 - Redis-backed caching strategy for high-read workloads
 - Modular architecture following SOLID and Clean Architecture principles
 - Global exception handling and consistent API response transformation
 - Extensible AI service layer designed for seamless LLM integration (OpenAI, Grok, Claude, etc.)
 - Fully containerized development environment with PostgreSQL and Redis
 - OpenAPI documentation with Swagger
+- 100% TypeScript strict typing across all layers
 
 ## Tech Stack
 
@@ -22,26 +24,78 @@ A production-ready backend featuring clean architecture, performant caching stra
 - **Security**: JWT + bcrypt
 - **Validation**: class-validator + DTOs
 - **Documentation**: Swagger/OpenAPI
-- **Architecture**: Modular, Clean Architecture, Repository pattern
+- **Architecture**: Modular, Clean Architecture, Repository Pattern
 
 ## Project Structure
 
 ```bash
 src/
 ├── common/
-│   ├── filters/           # Global exception handling
-│   ├── interceptors/      # Response transformation
-│   └── redis/             # Redis service & caching logic
+│   ├── filters/           # Global exception handling (AllExceptionsFilter)
+│   ├── interceptors/      # Response transformation (TransformInterceptor<T>)
+│   ├── redis/             # Redis service & caching
+│   └── types/             # Shared TypeScript types (JwtUser, AuthenticatedRequest)
 ├── auth/
 │   ├── dto/
-│   ├── strategies/
-│   └── guards/
+│   ├── guards/
+│   ├── repositories/      # UserRepository (abstract) + PrismaUserRepository
+│   └── strategies/
 ├── tasks/
 │   ├── dto/
+│   ├── repositories/      # TaskRepository (abstract) + PrismaTaskRepository
 │   └── ai.service.ts      # AI categorization layer
 ├── prisma/
 ├── app.module.ts
 └── main.ts
+```
+
+## Repository Pattern
+
+Services depend on abstract repository classes, not on Prisma directly. This:
+
+1. **Decouples** business logic from the persistence layer.
+2. **Enables testability** — unit tests mock the abstract class, not the ORM.
+3. **Supports extensibility** — swap `PrismaUserRepository` for any other implementation with zero service changes.
+
+```
+Controller → Service → TaskRepository (abstract)
+                              ↑
+                    PrismaTaskRepository (concrete, injected via DI)
+```
+
+### Registration
+
+Repositories are bound in each feature module using NestJS DI:
+
+```typescript
+// tasks.module.ts
+providers: [
+  TasksService,
+  { provide: TaskRepository, useClass: PrismaTaskRepository },
+]
+```
+
+## API Response Envelope
+
+All responses are wrapped by `TransformInterceptor<T>`:
+
+```json
+{
+  "success": true,
+  "data": { ... },
+  "timestamp": "2026-04-12T00:00:00.000Z"
+}
+```
+
+Error responses from `AllExceptionsFilter`:
+
+```json
+{
+  "success": false,
+  "statusCode": 404,
+  "message": "Task with ID xyz not found",
+  "timestamp": "2026-04-12T00:00:00.000Z"
+}
 ```
 
 ## Quick Start
@@ -78,40 +132,45 @@ npm run build              # Production build
 
 ## Architecture & Design Decisions
 
-- **Layered Architecture** with strict dependency rule and inversion of control
-- **Caching Strategy** using Redis as primary source for frequent read operations with automatic cache invalidation on writes
-- **Cross-cutting Concerns** implemented via global Exception Filter and Response Interceptor
-- **AI Abstraction Layer** built as a replaceable service, ready for production LLM providers
-- **Type-safe** and fully validated request/response flow
-- Strong emphasis on testability, maintainability and scalability
+- **Repository Pattern** — abstract classes as contracts allow services to be independent of any ORM. Concrete implementations (`PrismaUserRepository`, `PrismaTaskRepository`) are bound at module level.
+- **Layered Architecture** with strict dependency inversion: controllers → services → repositories.
+- **Caching Strategy** using Redis as primary source for frequent reads. Cache is invalidated on every write operation (`create`, `update`, `delete`).
+- **Cross-cutting Concerns** implemented via global `AllExceptionsFilter` and generic `TransformInterceptor<T>`.
+- **AI Abstraction Layer** built as a replaceable service, ready for production LLM providers.
+- **Fully typed** — no `any` usage; all services, controllers, repositories, guards and strategies have explicit TypeScript types.
 
 ## Testing
 
-Comprehensive test suite following best practices:
+Comprehensive test suite covering unit and integration levels.
 
 ### Unit Tests
-- `npm run test:unit` - Run unit tests
-- `npm run test:cov` - Generate coverage report
+
+```bash
+npm run test:unit   # Run unit tests
+npm run test:cov    # Generate coverage report
+```
 
 **Covered:**
-- `AuthService` (registration, login, error cases)
-- `AiService` (categorization logic with multiple scenarios)
-- `TasksService` (business logic and caching behavior)
+- `AuthService` — registration, login, hashing, error cases (mocks `UserRepository`)
+- `TasksService` — CRUD, cache hit/miss, AI categorization, invalidation (mocks `TaskRepository`)
+- `AiService` — categorization logic with multiple keyword scenarios
 
 ### End-to-End Tests
-- `npm run test:e2e` - Run e2e tests (uses dedicated test database)
+
+```bash
+npm run test:e2e   # Run e2e tests (uses dedicated test database)
+```
 
 **Covered:**
-- Authentication flow
-- Protected endpoints with JWT
-- AI service integration
+- Full auth flow: register, login, duplicate email, invalid credentials, validation
+- Response envelope (`{ success, data, timestamp }`)
 
 ### Test Stack
+
 - **Jest** + **Supertest**
-- Dedicated test database
-- Mocked external services
+- Dedicated test database (`TEST_DATABASE_URL`)
+- Repository mocks — services are fully isolated from Prisma in unit tests
 
 ---
 
-Focus on clean architecture, testability and maintainability.
-
+Focus on clean architecture, testability, and maintainability.
