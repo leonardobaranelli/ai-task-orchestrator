@@ -6,7 +6,7 @@ export class CreateTaskDto {
   @ApiProperty({ example: 'Complete monthly report' })
   @IsString()
   @IsNotEmpty()
-  title: string;
+  title!: string;
 
   @ApiProperty({ example: 'Prepare the monthly sales report', required: false })
   @IsString()
