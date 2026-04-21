@@ -19,12 +19,13 @@ A production-ready backend featuring clean architecture, a full repository patte
 ## Tech Stack
 
 - **Framework**: NestJS + TypeScript (strict mode)
-- **Database**: PostgreSQL with Prisma ORM
-- **Cache**: Redis
+- **Database**: PostgreSQL with Prisma ORM (Neon in production)
+- **Cache**: Redis (Upstash in production)
 - **Security**: JWT + bcrypt
 - **Validation**: class-validator + DTOs
 - **Documentation**: Swagger/OpenAPI
 - **Architecture**: Modular, Clean Architecture, Repository Pattern
+- **CI/CD**: GitHub Actions + Render (Docker-based deploy)
 
 ## Project Structure
 
@@ -128,6 +129,12 @@ npm run prisma:studio      # Open Prisma Studio
 npx prisma migrate dev     # Run migrations
 npm run db:test:setup      # Setup test database
 npm run build              # Production build
+
+# Code quality
+npm run lint               # ESLint check (fails on any warning)
+npm run lint:fix           # ESLint with auto-fix
+npm run format             # Format source files with Prettier
+npm run format:check       # Check formatting without writing
 ```
 
 ## Architecture & Design Decisions
@@ -220,19 +227,36 @@ Optionally, add a repository **variable** (not a secret) `RENDER_SERVICE_URL` wi
 
 Set these in the **Render service dashboard → Environment**:
 
-- `DATABASE_URL` — Neon / Supabase connection string (use the pooled connection for serverless-friendly pools)
-- `REDIS_HOST`, `REDIS_PORT`, `REDIS_TTL` — Upstash Redis endpoint + port + TTL
-- `JWT_SECRET`, `JWT_ACCESS_EXPIRATION`, `JWT_REFRESH_EXPIRATION`
-- `NODE_ENV=production`
-- `PORT=3000` (Render injects `PORT` automatically; NestJS already reads it)
+| Variable | Value |
+|---|---|
+| `DATABASE_URL` | Neon pooled connection string (ends in `-pooler`) |
+| `REDIS_HOST` | Upstash endpoint hostname (e.g. `xxx.upstash.io`) |
+| `REDIS_PORT` | `6379` |
+| `REDIS_PASSWORD` | Upstash database password |
+| `REDIS_TLS` | `true` (Upstash requires TLS) |
+| `REDIS_TTL` | `3600` |
+| `JWT_SECRET` | Strong secret (e.g. `openssl rand -base64 48`) |
+| `JWT_ACCESS_EXPIRATION` | `15m` |
+| `JWT_REFRESH_EXPIRATION` | `7d` |
+| `NODE_ENV` | `production` |
 
 ### One-time Render setup
 
 1. Create a new **Web Service** on Render pointing to this GitHub repo.
 2. Choose runtime **Docker** → Render will auto-detect the `Dockerfile`.
-3. **Disable Auto-Deploy** in Settings → Build & Deploy → *Auto-Deploy: No*. This is important: deploys must only happen after the CI gate passes via our GitHub Actions workflow, never directly on push.
+3. **Disable Auto-Deploy** in Settings → Build & Deploy → *Auto-Deploy: No*. This is critical: deploys must only happen after the CI gate passes via our GitHub Actions workflow, never directly on push.
 4. Add the environment variables listed above.
 5. Copy the service id (`srv-...`) from the URL and create a Render API key, then set them as GitHub Secrets.
+
+### Branch Protection
+
+The `main` branch is protected by a GitHub Ruleset enforcing:
+
+- Pull request required before merging
+- All CI status checks (`Lint`, `Prisma Validate`, `Build`, `Unit Tests`, `E2E Tests`) must pass
+- Linear history (no merge commits)
+- Force pushes and direct pushes to `main` are blocked
+- Conversation resolution required before merging
 
 ### Docker
 

@@ -22,7 +22,7 @@ async function bootstrap(): Promise<void> {
 
   const config = new DocumentBuilder()
     .setTitle('AI Task Orchestrator API')
-    .setDescription('Professional AI-Powered Task Management System')
+    .setDescription('AI-Powered Task Management System (Early Alpha)')
     .setVersion('1.0')
     .addBearerAuth()
     .build();
