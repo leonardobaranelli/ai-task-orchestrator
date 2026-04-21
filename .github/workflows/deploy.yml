@@ -1,0 +1,86 @@
+name: Deploy to Production
+
+on:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    # Only deploy if the CI workflow finished successfully
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    environment:
+      name: production
+      url: ${{ vars.RENDER_SERVICE_URL }}
+
+    steps:
+      - name: Trigger Render deploy
+        id: trigger
+        run: |
+          set -euo pipefail
+          RESPONSE=$(curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Accept: application/json" \
+            --header "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            --header "Content-Type: application/json" \
+            --data '{"clearCache":"do_not_clear"}' \
+            "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys")
+          DEPLOY_ID=$(echo "$RESPONSE" | jq -r '.id')
+          if [ -z "$DEPLOY_ID" ] || [ "$DEPLOY_ID" = "null" ]; then
+            echo "::error title=Deploy trigger failed::$RESPONSE"
+            exit 1
+          fi
+          echo "deploy-id=$DEPLOY_ID" >> "$GITHUB_OUTPUT"
+          echo "Render deploy started: $DEPLOY_ID"
+
+      - name: Wait for Render deploy to finish
+        run: |
+          set -euo pipefail
+          DEPLOY_ID="${{ steps.trigger.outputs.deploy-id }}"
+          SERVICE_ID="${{ secrets.RENDER_SERVICE_ID }}"
+          MAX_ATTEMPTS=60    # 60 * 20s = 20 minutes max
+          ATTEMPT=0
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            STATUS=$(curl --fail-with-body --silent --show-error \
+              --header "Accept: application/json" \
+              --header "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+              "https://api.render.com/v1/services/$SERVICE_ID/deploys/$DEPLOY_ID" \
+              | jq -r '.status')
+
+            echo "[$((ATTEMPT+1))/$MAX_ATTEMPTS] Render deploy status: $STATUS"
+
+            case "$STATUS" in
+              live)
+                echo "::notice title=Deploy success::Render deploy $DEPLOY_ID is live."
+                exit 0
+                ;;
+              build_failed|update_failed|canceled|deactivated|pre_deploy_failed)
+                echo "::error title=Deploy failed::Render deploy $DEPLOY_ID ended with status '$STATUS'."
+                exit 1
+                ;;
+              *)
+                sleep 20
+                ATTEMPT=$((ATTEMPT+1))
+                ;;
+            esac
+          done
+          echo "::error title=Deploy timeout::Render deploy $DEPLOY_ID did not finish within the timeout."
+          exit 1
+
+  notify-ci-failure:
+    name: Notify CI Failure
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion != 'success' }}
+    steps:
+      - name: Fail the deploy workflow so GitHub notifies via email and red check
+        run: |
+          echo "::error title=Deploy skipped::CI workflow failed on main (commit ${{ github.event.workflow_run.head_sha }}). Deployment was NOT performed."
+          echo "CI run: ${{ github.event.workflow_run.html_url }}"
+          exit 1

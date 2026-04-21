@@ -47,7 +47,6 @@ build/
 out/
 
 # Docker
-.dockerignore
 docker-compose.override.yml
 
 # OS generated files

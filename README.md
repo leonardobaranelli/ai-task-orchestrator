@@ -171,6 +171,83 @@ npm run test:e2e   # Run e2e tests (uses dedicated test database)
 - Dedicated test database (`TEST_DATABASE_URL`)
 - Repository mocks — services are fully isolated from Prisma in unit tests
 
+## CI/CD
+
+Automated pipeline powered by **GitHub Actions** with a strict gate before deployment.
+
+### Pipeline Overview
+
+```
+PR / push to main
+        │
+        ▼
+┌─────────────────── CI workflow ───────────────────┐
+│  lint ──┐                                         │
+│         ├─► build ──► test-unit                   │
+│  prisma─┤                                         │
+│  validate└─► test-e2e (Postgres + Redis services) │
+└───────────────────────────────────────────────────┘
+        │ (only if ALL jobs pass AND branch = main)
+        ▼
+┌──────────── Deploy workflow ─────────────┐
+│  Trigger Render deploy via REST API      │
+│  Poll deploy status until live / fail    │
+└──────────────────────────────────────────┘
+```
+
+### Gates that block deployment
+
+If **any** of the following fails, the deploy is skipped and GitHub sends an automatic failure email + red check on the commit:
+
+- `npm run lint` (ESLint, `--max-warnings=0`)
+- `npx prisma validate` + `npx prisma format --check`
+- `npm run build` (Nest build)
+- Unit tests (all `*.spec.ts`, with coverage)
+- E2E tests (`*.e2e-spec.ts` against real Postgres + Redis)
+
+### Required GitHub Secrets
+
+Configure these in **Settings → Secrets and variables → Actions → New repository secret**:
+
+| Secret | Purpose |
+|---|---|
+| `RENDER_API_KEY` | Render API key (Account Settings → API Keys) |
+| `RENDER_SERVICE_ID` | The `srv-xxxxxxxxxxxx` id of your Web Service on Render |
+
+Optionally, add a repository **variable** (not a secret) `RENDER_SERVICE_URL` with the public URL of the service so it shows up in the GitHub Environments UI.
+
+### Required Render Environment Variables
+
+Set these in the **Render service dashboard → Environment**:
+
+- `DATABASE_URL` — Neon / Supabase connection string (use the pooled connection for serverless-friendly pools)
+- `REDIS_HOST`, `REDIS_PORT`, `REDIS_TTL` — Upstash Redis endpoint + port + TTL
+- `JWT_SECRET`, `JWT_ACCESS_EXPIRATION`, `JWT_REFRESH_EXPIRATION`
+- `NODE_ENV=production`
+- `PORT=3000` (Render injects `PORT` automatically; NestJS already reads it)
+
+### One-time Render setup
+
+1. Create a new **Web Service** on Render pointing to this GitHub repo.
+2. Choose runtime **Docker** → Render will auto-detect the `Dockerfile`.
+3. **Disable Auto-Deploy** in Settings → Build & Deploy → *Auto-Deploy: No*. This is important: deploys must only happen after the CI gate passes via our GitHub Actions workflow, never directly on push.
+4. Add the environment variables listed above.
+5. Copy the service id (`srv-...`) from the URL and create a Render API key, then set them as GitHub Secrets.
+
+### Docker
+
+Production image built from a multi-stage `Dockerfile` (non-root user, minimal Alpine runner, Prisma client generated at build time).
+
+```bash
+# Local test of the production image
+docker build -t ai-task-orchestrator .
+docker run --rm -p 3000:3000 --env-file .env ai-task-orchestrator
+```
+
+### Notifications on failure
+
+No extra setup needed: GitHub sends automatic emails to the commit author and the PR author when any workflow run fails, plus a red status check on the commit/PR.
+
 ---
 
 Focus on clean architecture, testability, and maintainability.

@@ -10,10 +10,6 @@ import { TaskRepository, PrismaTaskRepository } from './repositories/task.reposi
 @Module({
   imports: [PrismaModule, RedisModule, AuthModule],
   controllers: [TasksController],
-  providers: [
-    TasksService,
-    AiService,
-    { provide: TaskRepository, useClass: PrismaTaskRepository },
-  ],
+  providers: [TasksService, AiService, { provide: TaskRepository, useClass: PrismaTaskRepository }],
 })
 export class TasksModule {}
