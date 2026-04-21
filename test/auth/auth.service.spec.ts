@@ -8,7 +8,9 @@ import { UserRepository } from '../../src/auth/repositories/user.repository';
 describe('AuthService', () => {
   let service: AuthService;
 
-  const mockUserRepository: jest.Mocked<Pick<UserRepository, 'findByEmail' | 'findById' | 'create'>> = {
+  const mockUserRepository: jest.Mocked<
+    Pick<UserRepository, 'findByEmail' | 'findById' | 'create'>
+  > = {
     findByEmail: jest.fn(),
     findById: jest.fn(),
     create: jest.fn(),

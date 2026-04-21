@@ -21,13 +21,29 @@ export class AiService {
     if (lowerDesc.includes('report') || lowerDesc.includes('informe')) {
       return 'Reports';
     }
-    if (lowerDesc.includes('develop') || lowerDesc.includes('code') || lowerDesc.includes('desarroll') || lowerDesc.includes('implement') || lowerDesc.includes('feature')) {
+    if (
+      lowerDesc.includes('develop') ||
+      lowerDesc.includes('code') ||
+      lowerDesc.includes('desarroll') ||
+      lowerDesc.includes('implement') ||
+      lowerDesc.includes('feature')
+    ) {
       return 'Development';
     }
-    if (lowerDesc.includes('design') || lowerDesc.includes('diseñ') || lowerDesc.includes('ui') || lowerDesc.includes('mockup') || lowerDesc.includes('dashboard')) {
+    if (
+      lowerDesc.includes('design') ||
+      lowerDesc.includes('diseñ') ||
+      lowerDesc.includes('ui') ||
+      lowerDesc.includes('mockup') ||
+      lowerDesc.includes('dashboard')
+    ) {
       return 'Design';
     }
-    if (lowerDesc.includes('marketing') || lowerDesc.includes('campaign') || lowerDesc.includes('campaña')) {
+    if (
+      lowerDesc.includes('marketing') ||
+      lowerDesc.includes('campaign') ||
+      lowerDesc.includes('campaña')
+    ) {
       return 'Marketing';
     }
 

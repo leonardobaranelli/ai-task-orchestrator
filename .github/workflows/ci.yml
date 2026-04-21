@@ -30,11 +30,18 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: Run ESLint
-        run: npm run lint -- --no-fix --max-warnings=0
+        run: npm run lint -- --max-warnings=0
+
+      - name: Check formatting with Prettier
+        run: npm run format:check
 
   prisma-validate:
     name: Prisma Validate
     runs-on: ubuntu-latest
+    env:
+      # Dummy URL; prisma validate only needs the env var to exist,
+      # it does not attempt a real connection.
+      DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy?schema=public
     steps:
       - uses: actions/checkout@v4
 
