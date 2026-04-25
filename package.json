@@ -1,5 +1,5 @@
 {
-  "name": "ai-task-orchestrator",
+  "name": "task-orchestrator",
   "version": "1.0.0",
   "description": "AI-Powered Task Management System - NestJS + Prisma + Redis",
   "author": "Leonardo Baranelli Backend Developer",

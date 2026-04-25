@@ -15,7 +15,7 @@ async function setupTestDatabase() {
 
   try {
     console.log('📦 Creating test database if it does not exist...');
-    execSync(`psql -U postgres -c "CREATE DATABASE ai_task_orchestrator_test;"`, { 
+    execSync(`psql -U postgres -c "CREATE DATABASE task_orchestrator_test;"`, { 
       stdio: 'ignore',
       env: { ...process.env, PGPASSWORD: 'postgres' }
     });

@@ -3,12 +3,12 @@ version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: ai-task-postgres
+    container_name: task-postgres
     restart: always
     ports:
       - '5432:5432'
     environment:
-      POSTGRES_DB: ai_task_orchestrator
+      POSTGRES_DB: task_orchestrator
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
@@ -21,7 +21,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: ai-task-redis
+    container_name: task-redis
     restart: always
     ports:
       - '6379:6379'
@@ -36,7 +36,7 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4:latest
-    container_name: ai-task-pgadmin
+    container_name: task-pgadmin
     restart: always
     ports:
       - '8080:80'

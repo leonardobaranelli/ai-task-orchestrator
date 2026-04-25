@@ -1,4 +1,4 @@
-# AI Task Orchestrator
+# Task Orchestrator
 
 Enterprise-grade AI-powered task management system built with NestJS.
 
@@ -264,8 +264,8 @@ Production image built from a multi-stage `Dockerfile` (non-root user, minimal A
 
 ```bash
 # Local test of the production image
-docker build -t ai-task-orchestrator .
-docker run --rm -p 3000:3000 --env-file .env ai-task-orchestrator
+docker build -t task-orchestrator .
+docker run --rm -p 3000:3000 --env-file .env task-orchestrator
 ```
 
 ### Notifications on failure

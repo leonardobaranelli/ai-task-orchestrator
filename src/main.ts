@@ -21,7 +21,7 @@ async function bootstrap(): Promise<void> {
   app.useGlobalInterceptors(new TransformInterceptor());
 
   const config = new DocumentBuilder()
-    .setTitle('AI Task Orchestrator API')
+    .setTitle('Task Orchestrator API')
     .setDescription('AI-Powered Task Management System (Early Alpha)')
     .setVersion('1.0')
     .addBearerAuth()

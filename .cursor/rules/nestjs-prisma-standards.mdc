@@ -1,5 +1,5 @@
 ---
-description: Code standards for NestJS + Prisma + Redis project in AI Task Orchestrator
+description: Code standards for NestJS + Prisma + Redis project in Task Orchestrator
 globs: **/*.ts
 alwaysApply: true
 ---
